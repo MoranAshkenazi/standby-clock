@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="StandBy Clock">
+  <title>StandBy Clock</title>
+  
+  <!-- טעינת Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- טעינת גופן גבוה וצר התואם לספרות ולתוויות בתמונה -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: #000000;
+      color: #f2f2f7;
+      font-family: "Barlow Condensed", -apple-system, BlinkMacSystemFont, sans-serif;
+      overflow: hidden;
+    }
+
+    /* התאריך והיום בראש המסך */
+    .date-header {
+      font-size: clamp(1rem, 2.3vw, 2.2rem);
+      font-weight: 600;
+      letter-spacing: 0.28em;
+      color: #d1d1d6;
+      text-transform: uppercase;
+    }
+
+    /* מכולת הספרות והתוויות */
+    .clock-grid {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7vw;
+      transition: transform 1.2s ease-in-out;
+    }
+
+    .time-column {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ספרות גבוהות וצרות עם קו חיתוך אופקי חד במרכז */
+    .digit-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(5.5rem, 24vw, 22rem);
+      font-weight: 600;
+      line-height: 0.92;
+      letter-spacing: 0.04em;
+      color: #f2f2f7;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .digit-wrapper::after {
+      content: "";
+      position: absolute;
+      left: -4%;
+      right: -4%;
+      top: 50%;
+      height: clamp(3px, 0.45vw, 6px);
+      background-color: #000000;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    /* תוויות HOUR / MIN / SEC מתחת לספרות */
+    .unit-label {
+      margin-top: clamp(1.2rem, 3.2vw, 3rem);
+      font-size: clamp(0.95rem, 2.1vw, 2rem);
+      font-weight: 500;
+      letter-spacing: 0.16em;
+      color: #d1d1d6;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body class="bg-black text-[#f2f2f7] w-full h-full flex flex-col items-center justify-center overflow-hidden px-4">
+
+  <!-- מכולה ראשית ממורכזת הניתנת להזזה עדינה למניעת צריבת מסך -->
+  <main id="clock-container" class="flex flex-col items-center justify-center w-full" aria-label="Digital Flip StandBy Clock">
+    
+    <!-- שורת תאריך ויום בשבוע -->
+    <div id="date-display" class="date-header mb-[4.5vw]">00.00 DAY</div>
+
+    <!-- שלוש עמודות: שעות, דקות ושניות -->
+    <div class="clock-grid">
+      <div class="time-column">
+        <div class="digit-wrapper" id="hours">00</div>
+        <span class="unit-label">HOUR</span>
+      </div>
+
+      <div class="time-column">
+        <div class="digit-wrapper" id="minutes">00</div>
+        <span class="unit-label">MIN</span>
+      </div>
+
+      <div class="time-column">
+        <div class="digit-wrapper" id="seconds">00</div>
+        <span class="unit-label">SEC</span>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    const DAYS_OF_WEEK = [
+      'SUNDAY',
+      'MONDAY',
+      'TUESDAY',
+      'WEDNESDAY',
+      'THURSDAY',
+      'FRIDAY',
+      'SATURDAY'
+    ];
+
+    /**
+     * עדכון התאריך והשעה בזמן אמת (שעות, דקות ושניות)
+     */
+    function updateClock() {
+      try {
+        const now = new Date();
+
+        // פורמט תאריך: DD.MM DAYNAME (לדוגמה: 15.11 SUNDAY)
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const dayName = DAYS_OF_WEEK[now.getDay()];
+        const formattedDate = `${day}.${month} ${dayName}`;
+
+        const dateEl = document.getElementById('date-display');
+        if (dateEl.textContent !== formattedDate) {
+          dateEl.textContent = formattedDate;
+        }
+
+        // פורמט שעה: HH, MM, SS
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+
+        const hoursEl = document.getElementById('hours');
+        const minutesEl = document.getElementById('minutes');
+        const secondsEl = document.getElementById('seconds');
+
+        if (hoursEl.textContent !== hours) {
+          hoursEl.textContent = hours;
+        }
+        if (minutesEl.textContent !== minutes) {
+          minutesEl.textContent = minutes;
+          // הזזה מיקרוסקופית עדינה בכל דקה למניעת צריבת מסך (OLED Burn-in)
+          const offsetX = Math.floor(Math.random() * 5) - 2;
+          const offsetY = Math.floor(Math.random() * 5) - 2;
+          document.getElementById('clock-container').style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+        }
+        if (secondsEl.textContent !== seconds) {
+          secondsEl.textContent = seconds;
+        }
+      } catch (err) {
+        console.error('Clock update error:', err);
+      }
+    }
+
+    /**
+     * מניעת כיבוי מסך אוטומטי באמצעות Screen Wake Lock API
+     */
+    let wakeLock = null;
+
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch (err) {
+        // התעלמות שקטה במידה והדפדפן חוסם Wake Lock בסביבת תצוגה מקדימה
+      }
+    }
+
+    // חידוש נעילת המסך בעת חזרה ללשונית או נגיעה במסך
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        requestWakeLock();
+      }
+    });
+    document.addEventListener('touchstart', requestWakeLock, { passive: true });
+    document.addEventListener('click', requestWakeLock);
+
+    // אתחול מיידי והפעלת לולאת עדכון
+    window.addEventListener('DOMContentLoaded', () => {
+      updateClock();
+      requestWakeLock();
+      setInterval(updateClock, 1000);
+    });
+  </script>
+</body>
+</html>
