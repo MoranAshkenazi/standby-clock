@@ -18,9 +18,9 @@
       --text: #f2f2f2;
       --subtext: #d8d8dc;
       --hinge: #000000;
-      --card-w: clamp(74px, 11.5vw, 148px);
-      --card-h: clamp(150px, 25vw, 310px);
-      --font-size: clamp(140px, 23vw, 290px);
+      --card-w: clamp(92px, 14vw, 185px);
+      --card-h: clamp(180px, 30vw, 360px);
+      --font-size: clamp(170px, 28vw, 340px);
     }
 
     * {
@@ -65,7 +65,7 @@
     .clock {
       display: flex;
       align-items: center;
-      gap: clamp(28px, 5.5vw, 84px);
+      gap: clamp(36px, 7vw, 110px);
     }
 
     .unit {
@@ -77,7 +77,7 @@
 
     .digits {
       display: flex;
-      gap: clamp(6px, 1.2vw, 18px);
+      gap: clamp(8px, 1.5vw, 22px);
     }
 
     .label {
@@ -89,7 +89,7 @@
       padding-left: 0.22em;
     }
 
-    /* Individual 3D Flip Card — isolated GPU layer prevents neighbor sub-pixel pulse */
+    /* Individual 3D Flip Card — isolated GPU layer prevents sub-pixel pulse */
     .flip-card {
       position: relative;
       width: var(--card-w);
@@ -207,14 +207,6 @@
         </div>
         <div class="label">MIN</div>
       </div>
-
-      <div class="unit">
-        <div class="digits">
-          <div class="flip-card" id="s1"></div>
-          <div class="flip-card" id="s2"></div>
-        </div>
-        <div class="label">SEC</div>
-      </div>
     </div>
   </div>
 
@@ -226,8 +218,8 @@
     // Snap card dimensions to even integer pixels to eliminate Safari sub-pixel jitter
     function snapCardMetrics() {
       const vw = window.innerWidth;
-      const rawW = Math.min(148, Math.max(74, vw * 0.115));
-      const rawH = Math.min(310, Math.max(150, vw * 0.25));
+      const rawW = Math.min(185, Math.max(92, vw * 0.14));
+      const rawH = Math.min(360, Math.max(180, vw * 0.3));
       const evenW = Math.round(rawW / 2) * 2;
       const evenH = Math.round(rawH / 2) * 2;
       document.documentElement.style.setProperty('--card-w', `${evenW}px`);
@@ -260,7 +252,7 @@
       };
     }
 
-    // Sequential 2-stage 3D mechanical fold (prevents Safari premature bottom flash)
+    // Sequential 2-stage 3D mechanical fold
     function flipTo(id, nextVal) {
       const card = cards[id];
       if (!card || card.val === nextVal) return;
@@ -318,7 +310,6 @@
       const now = new Date();
       const h = String(now.getHours()).padStart(2, '0');
       const m = String(now.getMinutes()).padStart(2, '0');
-      const s = String(now.getSeconds()).padStart(2, '0');
       const dd = String(now.getDate()).padStart(2, '0');
       const mm = String(now.getMonth() + 1).padStart(2, '0');
       const dayName = DAYS[now.getDay()];
@@ -326,14 +317,13 @@
       return {
         h1: h[0], h2: h[1],
         m1: m[0], m2: m[1],
-        s1: s[0], s2: s[1],
         dateStr: `${dd}.${mm} ${dayName}`
       };
     }
 
     // Initialize immediately on load
     const initial = getTimeParts();
-    ['h1', 'h2', 'm1', 'm2', 's1', 's2'].forEach(key => initCard(key, initial[key]));
+    ['h1', 'h2', 'm1', 'm2'].forEach(key => initCard(key, initial[key]));
     document.getElementById('date').textContent = initial.dateStr;
 
     function updateClock() {
@@ -342,8 +332,6 @@
       flipTo('h2', t.h2);
       flipTo('m1', t.m1);
       flipTo('m2', t.m2);
-      flipTo('s1', t.s1);
-      flipTo('s2', t.s2);
 
       const dateEl = document.getElementById('date');
       if (dateEl.textContent !== t.dateStr) {
@@ -351,7 +339,7 @@
       }
     }
 
-    setInterval(updateClock, 100);
+    setInterval(updateClock, 500);
 
     // Keep screen awake via Wake Lock API
     let wakeLock = null;
