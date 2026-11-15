@@ -6,19 +6,21 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="manifest" href="manifest.json" />
-  <title>StandBy Clock</title>
+  <title>StandBy 3D Flip Clock</title>
+  <!-- Google Fonts: Barlow Condensed (500, 600) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&display=swap" rel="stylesheet" />
   <style>
     :root {
       --bg: #000000;
+      --card-bg: #000000;
       --text: #f2f2f2;
       --subtext: #d8d8dc;
       --hinge: #000000;
-      --card-w: clamp(78px, 11.5vw, 148px);
-      --card-h: clamp(160px, 26vw, 310px);
-      --font-size: clamp(150px, 24vw, 290px);
+      --card-w: clamp(74px, 11.5vw, 148px);
+      --card-h: clamp(150px, 25vw, 310px);
+      --font-size: clamp(140px, 23vw, 290px);
       --flip-speed: 0.45s;
     }
 
@@ -35,7 +37,7 @@
       height: 100%;
       background-color: var(--bg);
       color: var(--text);
-      font-family: 'Barlow Condensed', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'Barlow Condensed', sans-serif;
       overflow: hidden;
       display: flex;
       align-items: center;
@@ -50,6 +52,7 @@
       gap: clamp(16px, 3vh, 32px);
     }
 
+    /* Top Date Header */
     .date {
       font-size: clamp(18px, 2.5vw, 30px);
       font-weight: 500;
@@ -59,22 +62,23 @@
       padding-left: 0.22em;
     }
 
+    /* Main Clock Row */
     .clock {
       display: flex;
       align-items: center;
-      gap: clamp(32px, 5.8vw, 84px);
+      gap: clamp(28px, 5.5vw, 84px);
     }
 
     .unit {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: clamp(14px, 2.4vh, 26px);
+      gap: clamp(12px, 2.4vh, 26px);
     }
 
     .digits {
       display: flex;
-      gap: clamp(8px, 1.3vw, 18px);
+      gap: clamp(6px, 1.2vw, 18px);
     }
 
     .label {
@@ -86,13 +90,13 @@
       padding-left: 0.22em;
     }
 
-    /* 3D Flip Digit Container */
+    /* Individual 3D Flip Card */
     .flip-card {
       position: relative;
       width: var(--card-w);
       height: var(--card-h);
       perspective: 1000px;
-      background: var(--bg);
+      background: var(--card-bg);
     }
 
     .half,
@@ -100,9 +104,9 @@
       position: absolute;
       left: 0;
       width: 100%;
-      height: 58%;
+      height: 50%;
       overflow: hidden;
-      background: var(--bg);
+      background: var(--card-bg);
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
     }
@@ -117,12 +121,12 @@
       align-items: center;
       justify-content: center;
       font-size: var(--font-size);
-      font-weight: 700;
+      font-weight: 600;
       line-height: 1;
       color: var(--text);
       font-variant-numeric: tabular-nums;
-      /* Optical vertical centering so the black split line cuts right through the middle */
-      transform: translateY(-1.5%);
+      /* Optical vertical centering so the 4px hinge line sits slightly lower, dead-center on the waist of 8 */
+      transform: translateY(-4.5%);
     }
 
     .top,
@@ -145,7 +149,7 @@
       bottom: 0;
     }
 
-    /* Animated Flaps */
+    /* Animated 3D Flaps */
     .flap-top {
       z-index: 3;
       transform-origin: 50% 100%;
@@ -188,7 +192,7 @@
       }
     }
 
-    /* Center Split Line */
+    /* Crisp 4px Center Hinge Line */
     .hinge {
       position: absolute;
       top: 50%;
@@ -237,6 +241,7 @@
     const DAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
     const cards = {};
 
+    // Build DOM layers for each digit card
     function initCard(id, initialVal) {
       const el = document.getElementById(id);
       el.innerHTML = `
@@ -257,6 +262,7 @@
       };
     }
 
+    // Trigger smooth 3D mechanical fold when a digit changes
     function flipTo(id, nextVal) {
       const card = cards[id];
       if (!card || card.val === nextVal) return;
@@ -302,6 +308,7 @@
       };
     }
 
+    // Initialize immediately on load
     const initial = getTimeParts();
     ['h1', 'h2', 'm1', 'm2', 's1', 's2'].forEach(key => initCard(key, initial[key]));
     document.getElementById('date').textContent = initial.dateStr;
@@ -323,7 +330,7 @@
 
     setInterval(updateClock, 250);
 
-    // Keep iPad screen awake while charging
+    // Keep screen awake via Wake Lock API
     let wakeLock = null;
     async function requestWakeLock() {
       try {
