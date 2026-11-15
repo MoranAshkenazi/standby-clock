@@ -1,0 +1,9 @@
+{
+  "name": "StandBy Clock",
+  "short_name": "StandBy Clock",
+  "start_url": "/standby-clock/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#000000",
+  "theme_color": "#000000"
+}
