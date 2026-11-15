@@ -89,7 +89,7 @@
       padding-left: 0.22em;
     }
 
-    /* Individual 3D Flip Card */
+    /* Individual 3D Flip Card — isolated GPU layer prevents neighbor sub-pixel pulse */
     .flip-card {
       position: relative;
       width: var(--card-w);
@@ -97,6 +97,9 @@
       perspective: 1000px;
       -webkit-perspective: 1000px;
       background: var(--card-bg);
+      transform: translateZ(0);
+      -webkit-transform: translateZ(0);
+      contain: layout paint;
     }
 
     .half,
@@ -109,6 +112,8 @@
       background: var(--card-bg);
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
+      transform: translateZ(0);
+      -webkit-transform: translateZ(0);
     }
 
     .half span,
@@ -126,7 +131,8 @@
       color: var(--text);
       font-variant-numeric: tabular-nums;
       /* Optical vertical centering so the 4px hinge line cuts dead-center through the waist of 8 */
-      transform: translateY(-2.8%);
+      transform: translate3d(0, -2.8%, 0);
+      -webkit-transform: translate3d(0, -2.8%, 0);
     }
 
     .top,
@@ -155,6 +161,7 @@
       transform-origin: 50% 100%;
       -webkit-transform-origin: 50% 100%;
       visibility: hidden;
+      will-change: transform;
     }
 
     .flap-bottom {
@@ -162,6 +169,7 @@
       transform-origin: 50% 0%;
       -webkit-transform-origin: 50% 0%;
       visibility: hidden;
+      will-change: transform;
     }
 
     /* Crisp 4px Center Hinge Line */
@@ -172,7 +180,8 @@
       width: 100%;
       height: 4px;
       background: var(--hinge);
-      transform: translateY(-50%);
+      transform: translate3d(0, -50%, 1px);
+      -webkit-transform: translate3d(0, -50%, 1px);
       z-index: 10;
       pointer-events: none;
     }
@@ -214,6 +223,19 @@
     const cards = {};
     const HALF_DURATION = 210; // ms per half-fold (420ms total)
 
+    // Snap card dimensions to even integer pixels to eliminate Safari sub-pixel jitter
+    function snapCardMetrics() {
+      const vw = window.innerWidth;
+      const rawW = Math.min(148, Math.max(74, vw * 0.115));
+      const rawH = Math.min(310, Math.max(150, vw * 0.25));
+      const evenW = Math.round(rawW / 2) * 2;
+      const evenH = Math.round(rawH / 2) * 2;
+      document.documentElement.style.setProperty('--card-w', `${evenW}px`);
+      document.documentElement.style.setProperty('--card-h', `${evenH}px`);
+    }
+    snapCardMetrics();
+    window.addEventListener('resize', snapCardMetrics);
+
     // Build DOM layers for each digit card
     function initCard(id, initialVal) {
       const el = document.getElementById(id);
@@ -246,15 +268,12 @@
       const prevVal = card.val;
       card.val = nextVal;
 
-      // Cancel any in-flight animation cleanly
       if (card.animTop) card.animTop.cancel();
       if (card.animBottom) card.animBottom.cancel();
 
-      // Prepare layers: top static shows next digit, bottom static keeps previous digit
       card.topSpan.textContent = nextVal;
       card.bottomSpan.textContent = prevVal;
 
-      // Stage 1: Top flap folds down from 0deg to -90deg while bottom flap stays completely hidden
       card.flapTopSpan.textContent = prevVal;
       card.flapBottomSpan.textContent = nextVal;
       card.flapBottom.style.visibility = 'hidden';
@@ -276,7 +295,6 @@
         card.flapTop.style.visibility = 'hidden';
         card.flapBottom.style.visibility = 'visible';
 
-        // Stage 2: Bottom flap unfolds down from 90deg to 0deg over the old bottom half
         card.animBottom = card.flapBottom.animate(
           [
             { transform: 'rotateX(90deg)', filter: 'brightness(0.4)' },
