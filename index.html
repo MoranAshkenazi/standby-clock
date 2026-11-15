@@ -21,7 +21,6 @@
       --card-w: clamp(74px, 11.5vw, 148px);
       --card-h: clamp(150px, 25vw, 310px);
       --font-size: clamp(140px, 23vw, 290px);
-      --flip-speed: 0.45s;
     }
 
     * {
@@ -96,6 +95,7 @@
       width: var(--card-w);
       height: var(--card-h);
       perspective: 1000px;
+      -webkit-perspective: 1000px;
       background: var(--card-bg);
     }
 
@@ -149,47 +149,19 @@
       bottom: 0;
     }
 
-    /* Animated 3D Flaps */
+    /* Animated 3D Flaps (controlled sequentially via JS) */
     .flap-top {
       z-index: 3;
       transform-origin: 50% 100%;
-      transform: rotateX(0deg);
+      -webkit-transform-origin: 50% 100%;
+      visibility: hidden;
     }
 
     .flap-bottom {
       z-index: 4;
       transform-origin: 50% 0%;
-      transform: rotateX(90deg);
-    }
-
-    .flip-card.flipping .flap-top {
-      animation: foldTop calc(var(--flip-speed) / 2) ease-in forwards;
-    }
-
-    .flip-card.flipping .flap-bottom {
-      animation: foldBottom calc(var(--flip-speed) / 2) ease-out calc(var(--flip-speed) / 2) forwards;
-    }
-
-    @keyframes foldTop {
-      0% {
-        transform: rotateX(0deg);
-        filter: brightness(1);
-      }
-      100% {
-        transform: rotateX(-90deg);
-        filter: brightness(0.4);
-      }
-    }
-
-    @keyframes foldBottom {
-      0% {
-        transform: rotateX(90deg);
-        filter: brightness(0.4);
-      }
-      100% {
-        transform: rotateX(0deg);
-        filter: brightness(1);
-      }
+      -webkit-transform-origin: 50% 0%;
+      visibility: hidden;
     }
 
     /* Crisp 4px Center Hinge Line */
@@ -240,6 +212,7 @@
   <script>
     const DAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
     const cards = {};
+    const HALF_DURATION = 210; // ms per half-fold (420ms total)
 
     // Build DOM layers for each digit card
     function initCard(id, initialVal) {
@@ -256,13 +229,16 @@
         val: initialVal,
         topSpan: el.querySelector('.top span'),
         bottomSpan: el.querySelector('.bottom span'),
+        flapTop: el.querySelector('.flap-top'),
+        flapBottom: el.querySelector('.flap-bottom'),
         flapTopSpan: el.querySelector('.flap-top span'),
         flapBottomSpan: el.querySelector('.flap-bottom span'),
-        timer: null
+        animTop: null,
+        animBottom: null
       };
     }
 
-    // Trigger smooth 3D mechanical fold when a digit changes
+    // Sequential 2-stage 3D mechanical fold (prevents Safari premature bottom flash)
     function flipTo(id, nextVal) {
       const card = cards[id];
       if (!card || card.val === nextVal) return;
@@ -270,25 +246,54 @@
       const prevVal = card.val;
       card.val = nextVal;
 
-      if (card.timer) {
-        clearTimeout(card.timer);
-      }
+      // Cancel any in-flight animation cleanly
+      if (card.animTop) card.animTop.cancel();
+      if (card.animBottom) card.animBottom.cancel();
 
-      card.el.classList.remove('flipping');
-      void card.el.offsetWidth;
-
+      // Prepare layers: top static shows next digit, bottom static keeps previous digit
       card.topSpan.textContent = nextVal;
       card.bottomSpan.textContent = prevVal;
+
+      // Stage 1: Top flap folds down from 0deg to -90deg while bottom flap stays completely hidden
       card.flapTopSpan.textContent = prevVal;
       card.flapBottomSpan.textContent = nextVal;
+      card.flapBottom.style.visibility = 'hidden';
+      card.flapTop.style.visibility = 'visible';
 
-      card.el.classList.add('flipping');
+      card.animTop = card.flapTop.animate(
+        [
+          { transform: 'rotateX(0deg)', filter: 'brightness(1)' },
+          { transform: 'rotateX(-90deg)', filter: 'brightness(0.4)' }
+        ],
+        {
+          duration: HALF_DURATION,
+          easing: 'ease-in',
+          fill: 'forwards'
+        }
+      );
 
-      card.timer = setTimeout(() => {
-        card.bottomSpan.textContent = nextVal;
-        card.flapTopSpan.textContent = nextVal;
-        card.el.classList.remove('flipping');
-      }, 460);
+      card.animTop.onfinish = () => {
+        card.flapTop.style.visibility = 'hidden';
+        card.flapBottom.style.visibility = 'visible';
+
+        // Stage 2: Bottom flap unfolds down from 90deg to 0deg over the old bottom half
+        card.animBottom = card.flapBottom.animate(
+          [
+            { transform: 'rotateX(90deg)', filter: 'brightness(0.4)' },
+            { transform: 'rotateX(0deg)', filter: 'brightness(1)' }
+          ],
+          {
+            duration: HALF_DURATION,
+            easing: 'ease-out',
+            fill: 'forwards'
+          }
+        );
+
+        card.animBottom.onfinish = () => {
+          card.bottomSpan.textContent = nextVal;
+          card.flapBottom.style.visibility = 'hidden';
+        };
+      };
     }
 
     function getTimeParts() {
@@ -328,7 +333,7 @@
       }
     }
 
-    setInterval(updateClock, 250);
+    setInterval(updateClock, 100);
 
     // Keep screen awake via Wake Lock API
     let wakeLock = null;
